@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: normal-agent
+  namespace: default
+  labels:
+    app: normal-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: normal-agent
+  template:
+    metadata:
+      labels:
+        app: normal-agent
+    spec:
+      serviceAccountName: normal-agent-sa
+      containers:
+        - name: agent
+          image: normal-agent:v1
+          imagePullPolicy: Never
+          volumeMounts:
+            - name: spiffe-workload-api
+              mountPath: /spiffe-workload-api
+              readOnly: true
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: spiffe-workload-api
+          csi:
+            driver: csi.spiffe.io
+            readOnly: true
+        - name: data
+          emptyDir: {}

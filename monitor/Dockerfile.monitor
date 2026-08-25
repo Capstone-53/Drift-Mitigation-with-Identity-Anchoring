@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    kubernetes==29.0.0 \
+    scikit-learn==1.4.2 \
+    numpy==1.26.4 \
+    requests==2.31.0
+
+# Bring in all three code layers this pod needs
+COPY monitor/realtime_monitor.py /app/monitor/
+COPY detection/ /app/detection/
+COPY mitigation/ /app/mitigation/
+
+RUN mkdir -p /app/models
+
+CMD ["python3", "/app/monitor/realtime_monitor.py"]

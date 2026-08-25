@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: normal-agents
+  labels:
+    app: agent
+    type: normal
+spec:
+  replicas: 3  # 3 normal agents
+  selector:
+    matchLabels:
+      app: agent
+      type: normal
+  template:
+    metadata:
+      labels:
+        app: agent
+        type: normal
+    spec:
+      serviceAccountName: agent-sa
+      containers:
+      - name: agent
+        image: multi-drift-agent:latest
+        imagePullPolicy: Never
+        env:
+        - name: AGENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: DRIFT_TYPE
+          value: "normal"
+        - name: DRIFT_DELAY
+          value: "60"
+        - name: DURATION
+          value: "3600"  # Run for 1 hour
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+      volumes:
+      - name: data-volume
+        hostPath:
+          path: /mnt/agent-data
+          type: DirectoryOrCreate
+      restartPolicy: Always

@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drift-monitor
+  labels:
+    app: drift-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drift-monitor
+  template:
+    metadata:
+      labels:
+        app: drift-monitor
+    spec:
+      serviceAccountName: drift-monitor-sa
+      # Train (or retrain) the baseline from whatever normal-agent data
+      # exists on the shared volume before the monitor starts watching.
+      initContainers:
+        - name: train-baseline
+          image: drift-monitor:latest
+          imagePullPolicy: Never
+          command:
+            - python3
+            - /app/detection/train_baseline.py
+            - --data
+            - /data/multi_drift_dataset.csv
+            - --out
+            - /app/models
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+            - name: model-volume
+              mountPath: /app/models
+      containers:
+        - name: monitor
+          image: drift-monitor:latest
+          imagePullPolicy: Never
+          env:
+            - name: DATA_FILE
+              value: "/data/multi_drift_dataset.csv"
+            - name: MODEL_DIR
+              value: "/app/models"
+            - name: POLL_SECONDS
+              value: "5"
+            - name: DRY_RUN
+              value: "true"  # first run: log what mitigation WOULD do, without touching pods
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: data-volume
+              mountPath: /data
+            - name: model-volume
+              mountPath: /app/models
+      volumes:
+        - name: data-volume
+          hostPath:
+            path: /mnt/agent-data
+            type: DirectoryOrCreate
+        - name: model-volume
+          emptyDir: {}
+      restartPolicy: Always

@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    kubernetes==28.1.0 \
+    psutil==5.9.6
+
+# Create working directory
+WORKDIR /app
+
+# Copy agent code
+COPY multi_drift_agent.py /app/
+
+# Create data directory
+RUN mkdir -p /data
+
+# Run agent
+CMD ["python3", "/app/multi_drift_agent.py"]
